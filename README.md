@@ -19,7 +19,20 @@ OR (to use it universally in system)
 
                 nogit -h
 
+NB: You might need to reload the shell/terminal before running the last command "nogit -h"
+If you are using bash, run:
 
+    source ~/.bashrc
+
+Specifically, if you are using MacOs:
+
+    source ~/.bash_profile
+
+If you are using zsh:
+
+    source ~/.zshrc
+
+for any other shell, please find out how to reload it😅
 2. for Windows (or Powershell), run these commands:
 
                 cd NOGIT
