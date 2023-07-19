@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import argparse
+import subprocess
+
+
+art = """               ++  :|  
+:::\ ,::\ /::| :| :::| 
+:|:| `::/ \::| :|  :|  
+          ,.:/         """
+def git_pull():
+    subprocess.run(['git', 'pull'])
+
+def git_push(username, message, use_lfs):
+    cmd = ['git', 'add', '.']
+    subprocess.run(cmd)
+    
+    if use_lfs:
+        cmd = ['git', 'lfs', 'push', 'origin', 'master']
+    else:
+        cmd = ['git', 'push', 'origin', 'master']
+    
+    if message:
+        cmd.extend(['-m', f'"uploaded by {username} - {message}"'])
+    else:
+        cmd.extend(['-m', f'"uploaded by {username}"'])
+    
+    subprocess.run(cmd)
+
+def git_merge():
+    subprocess.run(['git', 'merge'])
+
+def main():
+    print(art)
+    print("...nogit is an open source framework on top of git that can simplify unnecessary git commands")
+    print("...nogit can also automate many mundane tasks you do on your machine")
+    print("...you can check the source code in https://github.com/nathfavour/NOGIT ")
+    print("\n")
+
+    parser = argparse.ArgumentParser(description='Emulate basic Git operations.')
+    parser.add_argument('--p', '--push', action='store_true', help='Push changes to remote repository.')
+    parser.add_argument('--pu', '--pull', action='store_true', help='Pull changes from remote repository.')
+    parser.add_argument('--m', '--merge', action='store_true', help='Merge changes from remote repository.')
+    parser.add_argument('--username', '-u', default='default_user', help='Specify the username for commit message.')
+    parser.add_argument('--message', '-m', help='Specify the commit message.')
+    parser.add_argument('--L', '--lfs', action='store_true', help='Use Git Large File Storage (LFS).')
+
+    args = parser.parse_args()
+
+    if args.p:
+        git_push(args.username, args.message, args.L)
+    elif args.pu:
+        git_pull()
+    elif args.m:
+        git_merge()
+    else:
+        print('No valid command specified. Use --p, --pu, or --m.')
+
+if __name__ == '__main__':
+    main()
