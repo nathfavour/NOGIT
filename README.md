@@ -33,6 +33,7 @@ If you are using zsh:
     source ~/.zshrc
 
 for any other shell, please find out how to reload it😅
+
 2. for Windows (or Powershell), run these commands:
 
                 cd NOGIT
