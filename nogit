@@ -1,35 +1,52 @@
 #!/usr/bin/env python3
 import argparse
 import subprocess
+import datetime
 
-
-art = """               ++  :|  
-:::\ ,::\ /::| :| :::| 
-:|:| `::/ \::| :|  :|  
-          ,.:/         """
 def git_pull():
     subprocess.run(['git', 'pull'])
 
 def git_push(username, message, use_lfs):
     cmd = ['git', 'add', '.']
     subprocess.run(cmd)
-    
+
     if use_lfs:
         cmd = ['git', 'lfs', 'push', 'origin', 'master']
     else:
         cmd = ['git', 'push', 'origin', 'master']
-    
+
     if message:
         cmd.extend(['-m', f'"uploaded by {username} - {message}"'])
     else:
         cmd.extend(['-m', f'"uploaded by {username}"'])
-    
+
     subprocess.run(cmd)
 
 def git_merge():
     subprocess.run(['git', 'merge'])
 
+def run_git_commands(branch, username, message=None):
+    if not username:
+        print("Please provide a username (--u username) argument.")
+        return
+
+    if not branch:
+        branch = "General_branch"
+
+    if not message:
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        message = f"uploaded by {username} on {current_date}"
+
+    # Run git commands
+    subprocess.run(["git", "commit", "-m", message])
+    subprocess.run(["git", "branch", "-M", branch])
+    subprocess.run(["git", "push", "-u", "origin", branch])
+
 def main():
+    art = """               ++  :|
+:::\ ,::\ /::| :| :::|
+:|:| `::/ \::| :|  :|
+          ,.:/         """
     print(art)
     print("...nogit is an open source framework on top of git that can simplify unnecessary git commands")
     print("...nogit can also automate many mundane tasks you do on your machine")
@@ -43,6 +60,7 @@ def main():
     parser.add_argument('--username', '-u', default='default_user', help='Specify the username for commit message.')
     parser.add_argument('--message', '-m', help='Specify the commit message.')
     parser.add_argument('--L', '--lfs', action='store_true', help='Use Git Large File Storage (LFS).')
+    parser.add_argument("--b", dest="branch", help="Branch name", required=False)
 
     args = parser.parse_args()
 
@@ -52,8 +70,10 @@ def main():
         git_pull()
     elif args.m:
         git_merge()
+    elif args.branch:
+        run_git_commands(args.branch, args.username, args.message)
     else:
-        print('No valid command specified. Use --p, --pu, or --m.')
+        print('No valid command specified. Use --p, --pu, --m, or --b.')
 
 if __name__ == '__main__':
     main()
