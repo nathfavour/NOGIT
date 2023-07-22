@@ -1,46 +1,64 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import argparse
 import subprocess
 import datetime
+import os
+import datetime
+import sys
 
 def git_pull():
     subprocess.run(['git', 'pull'])
 
 def git_push(username, message, use_lfs):
-    cmd = ['git', 'add', '.']
-    subprocess.run(cmd)
+    cmd = ['git']
+    if username:
+        subprocess.run(cmd + ['add'] + ['.'])
+        if message:
+            cmd += ['commit', '-m', f'"{message}"']
+        else:   
+            current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            message = f"uploaded by {username} on {current_date}"
+            cmd += ['commit', '-m', message]
 
-    if use_lfs:
-        cmd = ['git', 'lfs', 'push', 'origin', 'master']
+        subprocess.run(cmd)
+        if branch:
+            subprocess.run('git', 'branch', '-M', f'"{branch}"')
+            if use_lfs:
+                cmd = ['git', 'lfs', 'push', 'origin', f'"{branch}"']
+            else:
+                cmd = ['git', 'push', 'origin', f'"{branch}"']
+        else:
+            subprocess.run(cmd + ['branch'] + ['-M'] + ['General_branch'])
+            if use_lfs:
+                cmd = ['git', 'lfs', 'push', 'origin', 'General_branch']
+            else:
+                cmd = ['git', 'push', 'origin', 'General_branch']
+        subprocess.run(cmd)
     else:
-        cmd = ['git', 'push', 'origin', 'master']
+        print("A username argument is required to run nogit...")
+        sys.exit()
 
-    if message:
-        cmd.extend(['-m', f'"uploaded by {username} - {message}"'])
+def move_removed_files():
+    current_dir = os.getcwd()
+
+    # Check if git is initialized in the current directory
+    git_initialized = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], capture_output=True, text=True).returncode == 0
+    if not git_initialized:
+        # Initialize git and add all files
+        subprocess.run(['git', 'init'])
+        subprocess.run(['git', 'add', '.'])
+
+    # Check the default branch of the local repository
+    default_branch = subprocess.run(['git', 'symbolic-ref', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    if os.path.basename(current_dir) == "Lottery":
+        # If the directory is "Lottery", change the default branch to "General_branch" if necessary
+        if default_branch != "General_branch":
+            subprocess.run(['git', 'checkout', '-b', 'General_branch'])
     else:
-        cmd.extend(['-m', f'"uploaded by {username}"'])
-
-    subprocess.run(cmd)
-
-def git_merge():
-    subprocess.run(['git', 'merge'])
-
-def run_git_commands(branch, username, message=None):
-    if not username:
-        print("Please provide a username (--u username) argument.")
-        return
-
-    if not branch:
-        branch = "General_branch"
-
-    if not message:
-        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-        message = f"uploaded by {username} on {current_date}"
-
-    # Run git commands
-    subprocess.run(["git", "commit", "-m", message])
-    subprocess.run(["git", "branch", "-M", branch])
-    subprocess.run(["git", "push", "-u", "origin", branch])
+        # If the directory is not "Lottery", set the default branch to "General_branch" if it does not exist
+        branches = subprocess.run(['git', 'branch'], capture_output=True, text=True).stdout.strip().split('\n')
+        if "General_branch" not in branches:
+            subprocess.run(['git', 'checkout', '-b', 'General_branch'])
 
 def main():
     art = """               ++  :|
@@ -54,26 +72,51 @@ def main():
     print("\n")
 
     parser = argparse.ArgumentParser(description='Emulate basic Git operations.')
-    parser.add_argument('--p', '--push', action='store_true', help='Push changes to remote repository.')
-    parser.add_argument('--pu', '--pull', action='store_true', help='Pull changes from remote repository.')
-    parser.add_argument('--m', '--merge', action='store_true', help='Merge changes from remote repository.')
-    parser.add_argument('--username', '-u', default='default_user', help='Specify the username for commit message.')
-    parser.add_argument('--message', '-m', help='Specify the commit message.')
+    parser.add_argument('--u', dest="username", default='default_user', help='Specify the username for commit message.')
+    parser.add_argument('--m', dest="message", default=None, help='Specify the commit message.')
     parser.add_argument('--L', '--lfs', action='store_true', help='Use Git Large File Storage (LFS).')
-    parser.add_argument("--b", dest="branch", help="Branch name", required=False)
+    parser.add_argument("--b", dest="branch", default=None, help="Branch name")
 
     args = parser.parse_args()
+    branch = args.branch
+    username = args.username
+    message = args.message
+    use_lfs = args.L
 
-    if args.p:
-        git_push(args.username, args.message, args.L)
-    elif args.pu:
-        git_pull()
-    elif args.m:
-        git_merge()
-    elif args.branch:
-        run_git_commands(args.branch, args.username, args.message)
+    # Check if git is initialized in the current directory
+    git_initialized = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], capture_output=True, text=True).returncode == 0
+    if not git_initialized:
+        # Initialize git
+        subprocess.run(['git', 'init'])
+        # Set the default branch to "General_branch"
+        subprocess.run(['git', 'checkout', '-b', 'General_branch'])
+
+    print("Comparing local and remote repository branches...")
+    git_pull()
+   
+    print("Checking for new files...")
+    subprocess.run(['git', 'add', '.'])
+
+    status_output = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True).stdout.strip()
+    if status_output:
+        print("Pushing new files to remote repository...")
+        git_push(username, message, use_lfs)
     else:
-        print('No valid command specified. Use --p, --pu, --m, or --b.')
+        print("No new files to push.")
+
+    print("Checking for removed files...")
+    move_removed_files()
+    try:
+        move_removed_files()
+    except:
+        print("There is an error somewhere... Please leave a notification in the question.txt file.")
+        print("Someone will see it and help you perform your git operations instead")
+        sys.exit()
+    if username:
+        git_push(username)
+    else:
+        print("You did not provide a (--u username) argument, so a pull operation will run instead...")
+        git_pull()
 
 if __name__ == '__main__':
     main()
